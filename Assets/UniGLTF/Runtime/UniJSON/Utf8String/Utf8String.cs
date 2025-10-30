@@ -110,16 +110,18 @@ namespace UniJSON
             return new Utf8String(bytes);
         }
 
+        public ReadOnlySpan<byte> AsSpan() => Bytes.AsSpan();
+
         public override string ToString()
         {
             if (ByteLength == 0) return "";
-            return Encoding.GetString(Bytes.Array, Bytes.Offset, Bytes.Count);
+            return Encoding.GetString(AsSpan());
         }
 
         public string ToAscii()
         {
             if (ByteLength == 0) return "";
-            return System.Text.Encoding.ASCII.GetString(Bytes.Array, Bytes.Offset, Bytes.Count);
+            return System.Text.Encoding.ASCII.GetString(AsSpan());
         }
 
         public bool IsEmpty
