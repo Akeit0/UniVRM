@@ -972,7 +972,7 @@ public static void Serialize_gltf_meshes__primitives_ITEM(JsonFormatter f, glTFP
         Serialize_gltf_meshes__primitives__attributes(f, value.attributes);
     }
 
-    if(value.material.HasValidIndex()){
+    if(value.material.HasValue){
         f.Key("material");
         f.Value(value.material.Value);
     }

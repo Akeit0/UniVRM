@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UniGLTF;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 namespace UniVRM10
 {
@@ -187,6 +188,8 @@ namespace UniVRM10
                 throw new ArgumentNullException();
             }
 
+      
+
             // 1. Try loading as vrm-1.0
             var instance = await TryLoadingAsVrm10Async(
                 gltfData,
@@ -199,6 +202,7 @@ namespace UniVRM10
                 ct,
                 importerContextSettings,
                 springboneRuntime);
+           
             if (instance != null)
             {
                 if (ct.IsCancellationRequested)
@@ -214,7 +218,10 @@ namespace UniVRM10
             {
                 throw new Exception($"Failed to load as VRM 1.0");
             }
-
+            if (awaitCaller is ImmediateCaller)
+            {
+                Profiler.BeginSample("TryMigratingFromVrm0XAsync");
+            }
             // 3. Try migration from vrm-0.x into vrm-1.0
             var migratedInstance = await TryMigratingFromVrm0XAsync(
                 gltfData,
@@ -226,6 +233,10 @@ namespace UniVRM10
                 vrmMetaInformationCallback,
                 ct,
                 springboneRuntime);
+            if (awaitCaller is ImmediateCaller)
+            {
+                Profiler.EndSample();
+            }
             if (migratedInstance != null)
             {
                 if (ct.IsCancellationRequested)
@@ -263,6 +274,7 @@ namespace UniVRM10
 
             if (vrm10Data == null)
             {
+                Debug.Log( $"Failed to load as VRM 1.0");
                 // NOTE: Failed to parse as VRM 1.0.
                 return null;
             }

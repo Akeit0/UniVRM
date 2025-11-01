@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using UniJSON;
+using UnityEngine;
+using UnityEngine.Profiling;
 
 namespace UniGLTF
 {
@@ -28,15 +30,19 @@ namespace UniGLTF
         {
             try
             {
+                Profiler.BeginSample("GlbLowLevelParser.Parse");
                 var chunks = ParseGlbChunks(_binary);
                 var jsonBytes = chunks[0].Bytes;
-                return ParseGltf(
+                var d= ParseGltf(
                     _path,
                     new Utf8String(new ArraySegment<byte>(jsonBytes.Array, jsonBytes.Offset, jsonBytes.Count)),
                     chunks,
                     default,
                     new MigrationFlags()
                 );
+                Profiler.EndSample();
+                Debug.Break();
+                return d;
             }
             catch (StackOverflowException ex)
             {
@@ -77,16 +83,18 @@ namespace UniGLTF
 
         internal static GltfData ParseGltf(string path, Utf8String json, IReadOnlyList<GlbChunk> chunks, IStorage storage, MigrationFlags migrationFlags)
         {
+            Profiler.BeginSample("GlbLowLevelParser.Parse+Json");
             var parsedJson = json.ParseAsJson();
+            Profiler.EndSample();
+            Profiler.BeginSample("GlbLowLevelParser.Deserialize");
             var GLTF = GltfDeserializer.Deserialize(parsedJson);
+            Profiler.EndSample();
             if (GLTF.asset.version != "2.0")
             {
                 throw new UniGLTFException("unknown gltf version {0}", GLTF.asset.version);
             }
-
             // Version Compatibility
             RestoreOlderVersionValues(parsedJson, GLTF);
-
             FixMeshNameUnique(GLTF);
             FixBlendShapeNameUnique(GLTF);
             foreach (var image in GLTF.images)
@@ -97,8 +105,8 @@ namespace UniGLTF
             FixMaterialNameUnique(GLTF);
             FixNodeName(GLTF);
             FixAnimationNameUnique(GLTF);
-
-            return new GltfData(path, json, GLTF, chunks, storage, migrationFlags);
+            
+            return new GltfData(path, json, GLTF, chunks, storage, migrationFlags);;
         }
 
         private static void FixMeshNameUnique(glTF GLTF)

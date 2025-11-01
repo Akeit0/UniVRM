@@ -49,26 +49,36 @@ public static $0 $2(JsonNode parsed)
 
     foreach(var kv in parsed.ObjectItems())
     {
-        var key = kv.Key.GetString();
+        var utf8Key =kv.Key.GetUtf8String();
+        char[] rentArray = ArrayPool<char>.Shared.Rent(utf8Key.ByteLength);
+        try
+        {
+            var key = rentArray.AsSpan();
+            var count = Utf8String.Encoding.GetChars(utf8Key.AsSpan(), key);
+            key = key[..count];
 "
 .Replace("$0", ValueType.Name)
 .Replace("$2", parentName)
 );
-
             foreach (var f in m_fsi)
             {
                 writer.Write(@"
-        if(key==""$0""){
-            value.$0 = $1;
-            continue;
-        }
+            if (key.SequenceEqual(""$0""))
+            {
+                value.$0 = $1;
+                continue;
+            }
 "
 .Replace("$0", f.Name)
 .Replace("$1", f.Serialization.GenerateDeserializerCall(f.FunctionName, "kv.Value"))
 );
             }
-
             writer.Write(@"
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(rentArray);
+        }
     }
     return value;
 }

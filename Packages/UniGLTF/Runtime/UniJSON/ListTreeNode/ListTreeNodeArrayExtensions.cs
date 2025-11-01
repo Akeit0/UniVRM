@@ -35,7 +35,7 @@ namespace UniJSON
         public static int GetArrayCount(this JsonNode self)
         {
             if (!self.IsArray()) throw new DeserializationException("is not array");
-            return self.Children.Count();
+            return self.ChildCount;
         }
 
         public static int IndexOf(this JsonNode self, JsonNode child)

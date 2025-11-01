@@ -34,7 +34,7 @@ namespace UniGLTF {
         {
             get
             {
-                return Path.Combine(UnityEngine.Application.dataPath,
+                return Path.Combine(UnityEngine.Application.dataPath,"../Packages",
                 "UniGLTF/Runtime/UniGLTF/Format/GltfSerializer.g.cs");
             }
         }

@@ -24,7 +24,7 @@ namespace UniGLTF
             writer.Write(@"
 public static $0 $2(JsonNode parsed)
 {
-    var value = new List<$1>();
+    var value = new List<$1>(parsed.GetArrayCount());
     foreach(var x in parsed.ArrayItems())
     {
         value.Add($3);

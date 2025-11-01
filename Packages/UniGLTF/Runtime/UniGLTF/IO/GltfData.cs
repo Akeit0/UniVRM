@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using UniJSON;
 using Unity.Collections;
+using UnityEngine.Profiling;
 
 namespace UniGLTF
 {
@@ -116,6 +117,7 @@ namespace UniGLTF
             {
                 if (Chunks.Count >= 2)
                 {
+
                     Bin = NativeArrayManager.CreateNativeArray(Chunks[1].Bytes);
                 }
             }

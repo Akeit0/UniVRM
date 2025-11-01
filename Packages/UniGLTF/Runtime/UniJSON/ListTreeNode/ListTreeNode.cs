@@ -234,7 +234,7 @@ namespace UniJSON
         {
             get
             {
-                if (m_Values == null)
+                if (m_Values == null || ValueIndex<0)
                 {
                     return default;
                 }
@@ -263,6 +263,47 @@ namespace UniJSON
                     {
                         ++count;
                         yield return new JsonNode(m_Values, i);
+                    }
+                }
+            }
+        }
+        
+        internal int  ChildrenCount
+        {
+            get
+            {
+                int count = 0;
+                for (int i = ValueIndex; count < ChildCount && i < m_Values.Count; ++i)
+                {
+                    if (m_Values[i].ParentIndex == ValueIndex)
+                    {
+                        ++count;
+                       
+                    }
+                }
+                return count;
+            }
+        }
+
+        internal IEnumerable<KeyValuePair<JsonNode, JsonNode>> ObjectItemsCore()
+        {
+            if (!this.IsMap()) throw new DeserializationException("is not object");
+            int count = 0;
+            for (int i = ValueIndex; count < ChildCount && i < m_Values.Count; ++i)
+            {
+                if (m_Values[i].ParentIndex == ValueIndex)
+                {
+                    ++count;
+                    var key =  new JsonNode(m_Values, i);
+                    i++;
+                    for (;count < ChildCount && i < m_Values.Count; ++i)
+                    {
+                        if (m_Values[i].ParentIndex == ValueIndex)
+                        {
+                            ++count;
+                          yield return new(key, new  JsonNode(m_Values, i));
+                          break;
+                        }
                     }
                 }
             }
@@ -329,7 +370,7 @@ namespace UniJSON
 
         public JsonNode AddValue(ArraySegment<byte> bytes, ValueNodeType valueType)
         {
-            return AddValue(default(JsonValue).New(bytes, valueType, ValueIndex));
+            return AddValue(new (new Utf8String(bytes), valueType, ValueIndex));
         }
 
         public JsonNode AddValue(JsonValue value)
@@ -340,7 +381,7 @@ namespace UniJSON
                 m_Values = new List<JsonValue>();
                 _valueIndex = -1;
             }
-            else
+            else if(_valueIndex >= 0)
             {
                 IncrementChildCount();
             }

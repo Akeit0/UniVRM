@@ -160,6 +160,7 @@ namespace UniVRM10
             { if (bones.UpperChest != null && bones.UpperChest.Node.TryGetValidIndex(nodes.Count, out var index)) yield return (HumanBodyBones.UpperChest, nodes[index]); }
         }
 
+        // ReSharper disable Unity.PerformanceAnalysis
         /// <summary>
         /// RuntimeGltfInstance 移譲するリソースの作成をする初期化
         /// </summary>

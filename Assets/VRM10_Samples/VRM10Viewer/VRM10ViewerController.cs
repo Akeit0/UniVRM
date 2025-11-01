@@ -8,6 +8,7 @@ using UniGLTF;
 using UniGLTF.SpringBoneJobs.Blittables;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 using static UniVRM10.Vrm10;
 
@@ -297,6 +298,11 @@ namespace UniVRM10.VRM10Viewer
                 // try VRM
                 //
                 UniGLTFLogger.Log($"{path}");
+                bool useAsync = opts.UseAsync;
+                if (!useAsync)
+                {
+                    Profiler.BeginSample("VRM10ViewerController.LoadModelBytes");
+                }
                 var vrm10Instance = await Vrm10.LoadBytesAsync(bytes,
                     canLoadVrm0X: true,
                     showMeshes: false,
@@ -305,6 +311,10 @@ namespace UniVRM10.VRM10Viewer
                     vrmMetaInformationCallback: RaiseUpdateMeta,
                     ct: cancellationToken,
                     springboneRuntime: opts.UseSpringboneSingelton ? new Vrm10FastSpringboneRuntime() : new Vrm10FastSpringboneRuntimeStandalone());
+                if (!useAsync)
+                {
+                    Profiler.EndSample();
+                }
                 if (cancellationToken.IsCancellationRequested)
                 {
                     UnityObjectDestroyer.DestroyRuntimeOrEditor(vrm10Instance.gameObject);

@@ -286,6 +286,20 @@ namespace UniJSON
             return new Utf8String(l.Bytes.Concat(r.Bytes));
         }
 
+        internal bool IsIntFast
+        {
+            get
+            {
+                var span = AsSpan();
+                foreach (var b in span)
+                {
+                    if (b is (byte)'.' or (byte)'e') return false;
+                }
+
+                return true;
+            }
+        }
+
         public bool IsInt
         {
             get

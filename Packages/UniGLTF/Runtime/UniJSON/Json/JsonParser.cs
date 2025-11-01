@@ -1,11 +1,15 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using UnityEngine.Pool;
 
 
 namespace UniJSON
 {
     public static class JsonParser
     {
-        static ValueNodeType GetValueType(Utf8String segment)
+        private static readonly ConcurrentBag<List<JsonValue>> listPool = new ConcurrentBag<List<JsonValue>>();
+        static ValueNodeType GetValueType(ReadOnlySpan<byte> segment)
         {
             switch (Char.ToLower((char)segment[0]))
             {
@@ -15,7 +19,7 @@ namespace UniJSON
                 case 't': return ValueNodeType.Boolean;
                 case 'f': return ValueNodeType.Boolean;
                 case 'n':
-                    if (segment.ByteLength >= 2 && Char.ToLower((char)segment[1]) == 'a')
+                    if (segment.Length >= 2 && ((char)segment[1]) is 'a'or 'A')
                     {
                         return ValueNodeType.NaN;
                     }
@@ -26,7 +30,7 @@ namespace UniJSON
                     return ValueNodeType.Infinity;
 
                 case '-':
-                    if (segment.ByteLength >= 2 && Char.ToLower((char)segment[1]) == 'i')
+                    if (segment.Length >= 2 && ((char)segment[1]) is 'i' or 'I')
                     {
                         return ValueNodeType.MinusInfinity;
                     }
@@ -42,18 +46,18 @@ namespace UniJSON
                 case '8': // fall through
                 case '9': // fall through
                     {
-                        if (segment.IsInt)
-                        {
-                            return ValueNodeType.Integer;
-                        }
-                        else
+                        // if (segment.IsInt)
+                        // {
+                        //     return ValueNodeType.Integer;
+                        // }
+                        // else
                         {
                             return ValueNodeType.Number;
                         }
                     }
 
                 default:
-                    throw new ParserException(segment + " is not valid json start(maybe invalid ',')");
+                    throw new ParserException(Utf8String.Encoding.GetString(segment) + " is not valid json start(maybe invalid ',')");
             }
         }
 
@@ -67,13 +71,12 @@ namespace UniJSON
         static JsonNode ParsePrimitive(JsonNode tree, Utf8String segment, ValueNodeType valueType)
         {
             int i = 1;
-            for (; i < segment.ByteLength; ++i)
+            var span = segment.AsSpan();
+            for (; i < span.Length; ++i)
             {
-                if (Char.IsWhiteSpace((char)segment[i])
-                    || segment[i] == '}'
-                    || segment[i] == ']'
-                    || segment[i] == ','
-                    || segment[i] == ':'
+                var c  = (char)span[i];
+                if (Char.IsWhiteSpace(c)
+                    || c is  '}' or  ']'or ',' or ':'
                     )
                 {
                     break;
@@ -85,7 +88,7 @@ namespace UniJSON
         static JsonNode ParseString(JsonNode tree, Utf8String segment)
         {
             int pos;
-            if (segment.TrySearchAscii((Byte)'"', 1, out pos))
+            if (segment.TrySearchDoubleQuote(1, out pos))
             {
                 return tree.AddValue(segment.Subbytes(0, pos + 1).Bytes, ValueNodeType.String);
             }
@@ -99,7 +102,7 @@ namespace UniJSON
         {
             var array = tree.AddValue(segment.Bytes, ValueNodeType.Array);
 
-            var closeChar = ']';
+            const byte closeChar = (byte)']';
             bool isFirst = true;
             var current = segment.Subbytes(1);
             while (true)
@@ -107,7 +110,7 @@ namespace UniJSON
                 {
                     // skip white space
                     int nextToken;
-                    if (!current.TrySearchByte(x => !Char.IsWhiteSpace((char)x), out nextToken))
+                    if (!current.TrySearchUnWhiteSpace(out nextToken))
                     {
                         throw new ParserException("no white space expected");
                     }
@@ -130,7 +133,7 @@ namespace UniJSON
                 {
                     // search ',' or closeChar
                     int keyPos;
-                    if (!current.TrySearchByte(x => x == ',', out keyPos))
+                    if (!current.TrySearchByte((byte)',', out keyPos))
                     {
                         throw new ParserException("',' expected");
                     }
@@ -140,7 +143,7 @@ namespace UniJSON
                 {
                     // skip white space
                     int nextToken;
-                    if (!current.TrySearchByte(x => !Char.IsWhiteSpace((char)x), out nextToken))
+                    if (!current.TrySearchUnWhiteSpace(out nextToken))
                     {
                         throw new ParserException("not whitespace expected");
                     }
@@ -163,7 +166,7 @@ namespace UniJSON
         {
             var obj = tree.AddValue(segment.Bytes, ValueNodeType.Object);
 
-            var closeChar = '}';
+            const char closeChar = '}';
             bool isFirst = true;
             var current = segment.Subbytes(1);
             while (true)
@@ -171,7 +174,7 @@ namespace UniJSON
                 {
                     // skip white space
                     int nextToken;
-                    if (!current.TrySearchByte(x => !Char.IsWhiteSpace((char)x), out nextToken))
+                    if (!current.TrySearchUnWhiteSpace(out nextToken))
                     {
                         throw new ParserException("no white space expected");
                     }
@@ -193,7 +196,7 @@ namespace UniJSON
                 {
                     // search ',' or closeChar
                     int keyPos;
-                    if (!current.TrySearchByte(x => x == ',', out keyPos))
+                    if (!current.TrySearchByte((byte)',', out keyPos))
                     {
                         throw new ParserException("',' expected");
                     }
@@ -203,7 +206,7 @@ namespace UniJSON
                 {
                     // skip white space
                     int nextToken;
-                    if (!current.TrySearchByte(x => !Char.IsWhiteSpace((char)x), out nextToken))
+                    if (!current.TrySearchUnWhiteSpace( out nextToken))
                     {
                         throw new ParserException("not whitespace expected");
                     }
@@ -220,7 +223,7 @@ namespace UniJSON
 
                 // search ':'
                 int valuePos;
-                if (!current.TrySearchByte(x => x == ':', out valuePos))
+                if (!current.TrySearchByte((byte) ':', out valuePos))
                 {
                     throw new ParserException(": is not found");
                 }
@@ -229,7 +232,7 @@ namespace UniJSON
                 {
                     // skip white space
                     int nextToken;
-                    if (!current.TrySearchByte(x => !Char.IsWhiteSpace((char)x), out nextToken))
+                    if (!current.TrySearchUnWhiteSpace( out nextToken))
                     {
                         throw new ParserException("not whitespace expected");
                     }
@@ -252,13 +255,13 @@ namespace UniJSON
         {
             // skip white space
             int pos;
-            if (!segment.TrySearchByte(x => !char.IsWhiteSpace((char)x), out pos))
+            if (!segment.TrySearchUnWhiteSpace( out pos))
             {
                 throw new ParserException("only whitespace");
             }
             segment = segment.Subbytes(pos);
 
-            var valueType = GetValueType(segment);
+            var valueType = GetValueType(segment.AsSpan());
             switch (valueType)
             {
                 case ValueNodeType.Boolean:
@@ -291,7 +294,17 @@ namespace UniJSON
 
         public static JsonNode Parse(Utf8String json)
         {
-            return Parse(default(JsonNode), json);
+            //return Parse(default, json);
+            const int bufferSize = 1 << 15;
+            if (!listPool.TryTake(out var list))
+            {
+               list = new List<JsonValue>(bufferSize);
+            }
+            var node= Parse(new JsonNode(list,-1), json);
+            var shrunk = new List<JsonValue>(list);
+            list.Clear();
+            listPool.Add(list);
+            return new  JsonNode(shrunk, node.ValueIndex);
         }
     }
 }

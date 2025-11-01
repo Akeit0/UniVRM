@@ -3,6 +3,8 @@ using System.Linq;
 using System.Collections.Generic;
 using Unity.Collections;
 using System.Runtime.InteropServices;
+using Unity.Collections.LowLevel.Unsafe;
+using UnityEngine.Profiling;
 
 namespace UniGLTF
 {
@@ -61,18 +63,24 @@ namespace UniGLTF
         /// <returns></returns>
         public NativeArray<T> CreateNativeArray<T>(int size) where T : struct
         {
-            var array = new NativeArray<T>(size, Allocator.Persistent);
+            var array = new NativeArray<T>(size, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
             m_disposables.Add(array);
             return array;
         }
 
         public NativeArray<T> CreateNativeArray<T>(ArraySegment<T> data) where T : struct
-        {
+        {                    
+            Profiler.BeginSample("CreateNativeArray");
+
             var array = CreateNativeArray<T>(data.Count);
+             Profiler.EndSample();
 #if UNITY_2022_2_OR_NEWER
             var toSpan = array.AsSpan();
             var fromSpan = data.AsSpan();
+            
+            Profiler.BeginSample("CreateNativeArray.Copy");
             fromSpan.CopyTo(toSpan);
+             Profiler.EndSample();
 #else
             for (int i = 0; i < data.Count; i++)
                 array[i] = data.Array[data.Offset + i];

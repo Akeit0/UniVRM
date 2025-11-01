@@ -14,8 +14,11 @@ namespace UniGLTF
         public const BindingFlags FIELD_FLAGS = BindingFlags.Instance | BindingFlags.Public;
 
         const string Begin = @"using UniJSON;
+using UniJSON;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 namespace UniGLTF {
@@ -34,7 +37,7 @@ public static class GltfDeserializer
         {
             get
             {
-                return Path.Combine(UnityEngine.Application.dataPath,
+                return Path.Combine(UnityEngine.Application.dataPath,"../Packages",
                 "UniGLTF/Runtime/UniGLTF/Format/GltfDeserializer.g.cs");
             }
         }

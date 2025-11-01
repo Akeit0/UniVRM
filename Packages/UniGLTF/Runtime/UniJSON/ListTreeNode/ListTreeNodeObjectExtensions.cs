@@ -9,21 +9,22 @@ namespace UniJSON
     {
         public static IEnumerable<KeyValuePair<JsonNode, JsonNode>> ObjectItems(this JsonNode self)
         {
-            if (!self.IsMap()) throw new DeserializationException("is not object");
-            var it = self.Children.GetEnumerator();
-            while (it.MoveNext())
-            {
-                var key = it.Current;
-
-                it.MoveNext();
-                yield return new KeyValuePair<JsonNode, JsonNode>(key, it.Current);
-            }
+          return self.ObjectItemsCore();
+            // if (!self.IsMap()) throw new DeserializationException("is not object");
+            // var it = self.Children.GetEnumerator();
+            // while (it.MoveNext())
+            // {
+            //     var key = it.Current;
+            //
+            //     it.MoveNext();
+            //     yield return new KeyValuePair<JsonNode, JsonNode>(key, it.Current);
+            // }
         }
 
         public static int GetObjectCount(this JsonNode self)
         {
             if (!self.IsMap()) throw new DeserializationException("is not object");
-            return self.Children.Count() / 2;
+            return self.ChildCount / 2;
         }
 
         public static string GetObjectValueOrDefault(this JsonNode self, String key, string defualtValue)
